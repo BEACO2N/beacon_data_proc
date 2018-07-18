@@ -12,19 +12,16 @@ import datetime
 import sys
 import os
 
+import pdb
+
 from datetime import (
     datetime,
     timedelta,
 )
  
 NUM_COLUMNS_WITHOUT_DATE = 21
-def main(lastdayofmonth,data_directory):
-    #if len(sys.argv) < 2:
-    #    sys.stderr.write("Must specify node directory!\n")
-    #    return
-
-    #node_directory = sys.argv[1]
-
+def main(lastdayofmonth,temporary_directory):
+    
     def average_and_output_bucket(bucket, date):
         if bucket == []:
             averaged_row = None
@@ -44,13 +41,10 @@ def main(lastdayofmonth,data_directory):
                 averaged_row.append(col_avg)
 
         if averaged_row is None:
-            print (",".join(
-                [''] * NUM_COLUMNS_WITHOUT_DATE + [str(date.replace(second=30))]
-            ))
+            master_list.append([''] * NUM_COLUMNS_WITHOUT_DATE + [str(date.replace(second=30))])
+            
         else:
-            print (",".join(
-                [str(s) for s in averaged_row] + [str(date.replace(second=30))]
-            ))
+            master_list.append([str(s) for s in averaged_row] + [str(date.replace(second=30))])
 
     def fill_in_missing_minutes(start, end):
         """Helper function to fill in wholes in the data."""
@@ -114,11 +108,12 @@ def main(lastdayofmonth,data_directory):
     # Specifies when we expect the data to start and end. The script
     # will ensure that there are exactly as many lines in the resulting
     # output as there are minutes between the start and end date. 
-    curr_date = datetime(year=int(os.listdir(data_directory)[0][0:4]), month=int(os.listdir(data_directory)[0][5:7]), day=1, hour=0, minute=0, second=0)  # Inclusive
-    end_date = datetime(year=int(os.listdir(data_directory)[-1][0:4]), month=int(os.listdir(data_directory)[-1][5:7]), day=int(lastdayofmonth), hour=23, minute=59, second=59)  # Non-inclusive
+    curr_date = datetime(year=int(os.listdir(temporary_directory)[0][0:4]), month=int(os.listdir(temporary_directory)[0][5:7]), day=1, hour=0, minute=0, second=0)  # Inclusive
+    end_date = datetime(year=int(os.listdir(temporary_directory)[-1][0:4]), month=int(os.listdir(temporary_directory)[-1][5:7]), day=int(lastdayofmonth), hour=23, minute=59, second=59)  # Non-inclusive
 
-    for year_month in sorted(os.listdir(data_directory)):
-        year_month_path = os.path.join(data_directory, year_month)
+    master_list = []
+    for year_month in sorted(os.listdir(temporary_directory)):
+        year_month_path = os.path.join(temporary_directory, year_month)
         sys.stderr.write("Processing folder: %s\n" % year_month_path)
 
         month_date = datetime.strptime(year_month, "%Y_%m")
@@ -142,6 +137,8 @@ def main(lastdayofmonth,data_directory):
             sys.stderr.write("Processing hour: %s\n" % hour_path)
             process_hour_file(hour_date, hour_path)
 
+            #Put data into list
+
             # Now that we've processed that hour's file, we expect the next hour.
             curr_date = hour_date + timedelta(hours=1)
 
@@ -153,6 +150,8 @@ def main(lastdayofmonth,data_directory):
 
     # Fill in until the end (months may be missing).
     fill_in_missing_minutes(curr_date, end_date)
+
+    return master_list
 
 if __name__ == '__main__':
     main()

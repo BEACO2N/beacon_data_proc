@@ -13,7 +13,9 @@ import sys
 import glob
 from textui import uielements
 
+os.chdir('/Users/stephendecina/Desktop/Beacon_program')
 import min_avg_m_sumac
+import stpp_correct_sumac
 
 #Dealing with compatability issue
 if sys.version_info.major == 3:
@@ -42,13 +44,12 @@ site = select_site() #selecting site using function above
 parent = os.path.join('.', 'Test', site, 'data') #Folder in parent directory with months
 start_idx = start_date(os.listdir(parent)) #picking the first month in the range for which to grab data
 end_idx = end_date(os.listdir(parent)) #picking the last month in the range for which to grab data
+temporary_directory = os.path.join('.', 'Temporary_directory', site, 'data') #Path to temporary data directory
 
-tempdir = os.path.join('.', 'Temporary_directory', site, 'data') #Path to temporary data directory
 for i in range(start_idx,end_idx+1): #copy files
-    shutil.copytree(os.path.join(parent,os.listdir(parent)[i]), os.path.join(tempdir,os.listdir(parent)[i]))
+    shutil.copytree(os.path.join(parent,os.listdir(parent)[i]), os.path.join(temporary_directory,os.listdir(parent)[i]))
 
 #Define last day of the month for min_avg_m_sumac.py script
-#Give example of what "monthfolders" is - explanation
 if os.listdir(parent)[end_idx][5:7] in ("01","03","05","07","08","11","12"):
     lastdayofmonth = 31
 elif os.listdir(parent)[end_idx][5:7] in ("04","06","09","10"):
@@ -58,13 +59,10 @@ elif os.listdir(parent)[end_idx][5:7] in ("02") and os.listdir(parent)[end_idx][
 else:
     lastdayofmonth = 28
 
-#Run minute-averaging script
-min_avg_m_sumac.main(lastdayofmonth,tempdir)
+#Run minute-averaging script and STPP correct script
+list_of_min_averages = min_avg_m_sumac.main(lastdayofmonth,temporary_directory)
+list_of_min_averages_STPP_corrected = stpp_correct_sumac.main(list_of_min_averages)
 
-import stpp.correct.py
-
-#Run python scripts to get minute-averaged file
-#python2.7 min_avg_M.py ../A5 | python2.7 stpp_correct.py >../A5/HA5_2018_Dec_Mar.csv
 
 #Change all NA's to "NA"
 #sed -i '' -e ’s/None/NA/g' ../B4/HB4_2018_Dec_Jan.csv
@@ -77,58 +75,3 @@ import stpp.correct.py
 ###AT END
 #Remove temporary directory and its contents
 shutil.rmtree('./Temporary_directory/')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#make Temporary Directory - likely unnecessary
-def createFolder(directory):
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
-    elif os.path.isfile(directory):
-        raise OSError ('"{}" is a file, cannot create a directory with that name'.format(directory))
-        
-site = input('What is your site/SD card name as written in Sumac?')
-startdate = input('What is your start date in yyyy_mm?')
-shellcmd = os.path.join('.', 'Temporary_directory', site, 'data',startdate)
-createFolder(shellcmd)
-
-
-
-def start_date(dates):
-    print("What is your start date?")
-    for idx, element in enumerate(dates):
-        print("{}) {}".format(idx+1,element))
-    i = get_input("Enter number: ")
-    try:
-        if 0 < int(i) <= len(dates):
-            return int(i)
-    except:
-        pass
-    return None
-
-def end_date(dates):
-    print("What is your end date?")
-    for idx, element in enumerate(dates):
-        print("{}) {}".format(idx+1,element))
-    i = get_input("Enter number: ")
-    try:
-        if 0 < int(i) <= len(dates):
-            return int(i)
-    except:
-        pass
-    return None
