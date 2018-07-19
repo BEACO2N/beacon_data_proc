@@ -1,0 +1,5 @@
+.DS_Store
+Temporary_directory/
+__pycache__
+*.pdf
+*.csv

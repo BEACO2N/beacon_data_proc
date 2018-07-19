@@ -37,11 +37,12 @@ def end_date(dates):
 
 #Asking for user input: which site should we process?
 sitesdir = os.path.join(_my_dir, 'Test')
+#sitesdir = os.path.join(_my_dir, 'NODEFILES')
 def select_site():
     files = glob.glob(os.path.join(sitesdir,'*'))
     directories = [os.path.basename(f) for f in files if os.path.isdir(f)]
     return uielements.user_input_list('What is your site/SD card name?',directories,emptycancel=False)
-site = select_site() #selecting site using function above
+site = select_site() #Choosing site using function above
 
 #Functions to get time zone in order to make the correct local time correction in R
 tzone=['Pacific','Mountain','Central','Eastern','Taiwan']
@@ -51,11 +52,11 @@ time_zone = time_zone_finder(tzone)
 
 #Copy only files from selected date range into temporary folder
 parent = os.path.join(sitesdir, site, 'data') #Folder in parent directory with months
-start_idx = start_date(os.listdir(parent)) #picking the first month in the range for which to grab data
-end_idx = end_date(os.listdir(parent)) #picking the last month in the range for which to grab data
+start_idx = start_date(os.listdir(parent)) #Choosing the first month in the range for which to grab data
+end_idx = end_date(os.listdir(parent)) #Choosing the last month in the range for which to grab data
 temporary_directory = os.path.join(_my_dir, 'Temporary_directory', site, 'data') #Path to temporary data directory
 
-for i in range(start_idx,end_idx+1): #copy files
+for i in range(start_idx,end_idx+1): #Copy files
     shutil.copytree(os.path.join(parent,os.listdir(parent)[i]), os.path.join(temporary_directory,os.listdir(parent)[i]))
 
 #Define last day of the month for min_avg_m_sumac.py script
@@ -84,14 +85,15 @@ with open("initial_output.csv", "w", newline="") as f:
     writer.writerows(list_of_min_averages_STPP_corrected)
 
 #R processing
-subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Processing_script_ideal2.r'),time_zone, _my_dir, site, os.listdir(parent)[start_idx], os.listdir(parent)[end_idx]])
+subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Beacon_minute_and_hour_average_processing.r'),time_zone, _my_dir, site, os.listdir(parent)[start_idx], os.listdir(parent)[end_idx]])
 
-#Rename file
-#os.rename('R_processed_minute_averaged_STPP_corrected.csv',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'minute_averaged_STPP_corrected.csv'))
-#os.rename('R_processed_hour_averaged_STPP_corrected.csv',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'hour_averaged_STPP_corrected.csv'))
-#os.rename('checking_data_record.pdf',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'hour_averaged_data_record_plots.pdf'))
+#Message to copy file to local directory
+sumac_username = os.getenv('USER')
+user_path = os.path.join((sumac_username + '@128.32.208.6:'),'home',sumac_username,'Temporary_directory',(site + '*'))
+print('Process complete')
+print('To copy the directory you just created to your local directory, run the following command:')
+print('scp -r',user_path,'.')
 
-###AT END
 #Remove temporary directory and its contents
-#shutil.rmtree('./Temporary_directory/')
-#os.remove('./initial_output.csv')
+shutil.rmtree('./Temporary_directory/')
+os.remove('./initial_output.csv')
