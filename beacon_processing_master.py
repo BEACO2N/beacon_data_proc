@@ -11,11 +11,14 @@ import os
 import shutil
 import sys
 import glob
+import csv
+import subprocess
 from textui import uielements
 
-os.chdir('/Users/stephendecina/Desktop/Beacon_program')
 import min_avg_m_sumac
 import stpp_correct_sumac
+
+_my_dir = os.path.abspath(os.path.realpath(os.path.dirname(__file__)))
 
 #Dealing with compatability issue
 if sys.version_info.major == 3:
@@ -33,18 +36,24 @@ def end_date(dates):
     return uielements.user_input_list('What is your end date?',dates,emptycancel=False, returntype='index')
 
 #Asking for user input: which site should we process?
-sitesdir = os.path.join('.', 'Test')
+sitesdir = os.path.join(_my_dir, 'Test')
 def select_site():
     files = glob.glob(os.path.join(sitesdir,'*'))
     directories = [os.path.basename(f) for f in files if os.path.isdir(f)]
     return uielements.user_input_list('What is your site/SD card name?',directories,emptycancel=False)
 site = select_site() #selecting site using function above
 
+#Functions to get time zone in order to make the correct local time correction in R
+tzone=['Pacific','Mountain','Central','Eastern','Taiwan']
+def time_zone_finder(tzone):
+    return uielements.user_input_list('What is your time zone?',tzone,emptycancel=False)
+time_zone = time_zone_finder(tzone)
+
 #Copy only files from selected date range into temporary folder
-parent = os.path.join('.', 'Test', site, 'data') #Folder in parent directory with months
+parent = os.path.join(sitesdir, site, 'data') #Folder in parent directory with months
 start_idx = start_date(os.listdir(parent)) #picking the first month in the range for which to grab data
 end_idx = end_date(os.listdir(parent)) #picking the last month in the range for which to grab data
-temporary_directory = os.path.join('.', 'Temporary_directory', site, 'data') #Path to temporary data directory
+temporary_directory = os.path.join(_my_dir, 'Temporary_directory', site, 'data') #Path to temporary data directory
 
 for i in range(start_idx,end_idx+1): #copy files
     shutil.copytree(os.path.join(parent,os.listdir(parent)[i]), os.path.join(temporary_directory,os.listdir(parent)[i]))
@@ -63,15 +72,26 @@ else:
 list_of_min_averages = min_avg_m_sumac.main(lastdayofmonth,temporary_directory)
 list_of_min_averages_STPP_corrected = stpp_correct_sumac.main(list_of_min_averages)
 
+#Change all None, nan, and Nan to "NA" because R doesn't understand Nan, nan, and None as NA
+for row in list_of_min_averages_STPP_corrected:
+    for (i, item) in enumerate(row):
+        if item == 'None' or item == 'nan' or item == 'Nan':
+            row[i]='NA'
 
-#Change all NA's to "NA"
-#sed -i '' -e ’s/None/NA/g' ../B4/HB4_2018_Dec_Jan.csv
-#sed -i '' -e ’s/NaN/NA/g' ../B4/HB4_2018_Dec_Jan.csv
-#sed -i '' -e ’s/nan/NA/g' ../B4/HB4_2018_Dec_Jan.csv
+#Write to csv for processing in R
+with open("initial_output.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerows(list_of_min_averages_STPP_corrected)
 
 #R processing
+subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Processing_script_ideal2.r'),time_zone, _my_dir, site, os.listdir(parent)[start_idx], os.listdir(parent)[end_idx]])
 
+#Rename file
+#os.rename('R_processed_minute_averaged_STPP_corrected.csv',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'minute_averaged_STPP_corrected.csv'))
+#os.rename('R_processed_hour_averaged_STPP_corrected.csv',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'hour_averaged_STPP_corrected.csv'))
+#os.rename('checking_data_record.pdf',(site + '_' + os.listdir(parent)[start_idx] + '_to_' + os.listdir(parent)[end_idx-1] + '_' + 'hour_averaged_data_record_plots.pdf'))
 
 ###AT END
 #Remove temporary directory and its contents
-shutil.rmtree('./Temporary_directory/')
+#shutil.rmtree('./Temporary_directory/')
+#os.remove('./initial_output.csv')
