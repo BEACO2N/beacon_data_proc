@@ -82,14 +82,14 @@ hours$datehour=(as.character(hours$datehour)) #format the hours column as a char
 hours$datehour=as.POSIXct(hours$datehour,tz="UTC") #...we can format it as a date/time column here
 
 hour_averaged_data=NA #calculate the hourly mean of each column
-for(i in c(1:29)) { #NOTE that warnings from inability to average non-numeric columns; will address below
+suppressWarnings(for(i in c(1:29)) { #NOTE that suppressed warnings are from inability to average non-numeric columns; will address below
   value=aggregate(hours[,i], list(hours$datehour), mean, na.rm=T)
   if(i==1){
     hour_averaged_data=cbind(hour_averaged_data,value)
   } else {
     hour_averaged_data=cbind(hour_averaged_data,value[,2])
   }
-}
+})
 
 hour_averaged_data=hour_averaged_data[,-c(1,3,24,26,28)] #remove unnecessary columns
 colnames(hour_averaged_data)=c("Date_time_UTC","Pressure","BME_temp","Rh","Dew_pt", "NA_1","NA_2","NA_3", #name columns
@@ -122,11 +122,11 @@ hour_averaged_data=hour_averaged_data[,c(25,1,27,23,28,24,26,2,3,21,4,5,9:19,20,
 #*********************************** SAVE FILES *********************************#
 ##################################################################################
 
-shell_cmd=(paste("mkdir ", paste(args_from_python[3],"_",format(Sys.time(),"%Y-%m-%d_%H-%M-%S"),sep=""),sep=""))
+shell_cmd=(paste("mkdir ", paste(args_from_python[2],"/",args_from_python[3],args_from_python[4],"_to_",args_from_python[5],"_temporary_processing",sep=""),sep=""))
 system(shell_cmd)
-setwd(paste(args_from_python[2],"/",args_from_python[3],"_",format(Sys.time(),"%Y-%m-%d_%H-%M-%S",sep=""),sep=""))
-write.csv(minute_averaged_data, paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","minute_averaged_STPP_corrected.csv"))
-write.csv(hour_averaged_data, paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","hour_averaged_STPP_corrected.csv"))
+setwd(paste(args_from_python[2],"/",args_from_python[3],args_from_python[4],"_to_",args_from_python[5],"_temporary_processing",sep=""))
+write.csv(minute_averaged_data, paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","minute_averaged_STPP_corrected.csv",sep=""))
+write.csv(hour_averaged_data, paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","hour_averaged_STPP_corrected.csv",sep=""))
 
 ##################################################################################
 #*************************** LOOKING AT DATA RECORD ******************************#
@@ -143,11 +143,11 @@ for(j in c(8:12,24,25)){
 }
 
 #Making plots of all data over period
-filename=paste(paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","PLOTS.pdf"))
+filename=paste(paste(args_from_python[3],"_",args_from_python[4],"_to_",args_from_python[5],"_","PLOTS.pdf",sep=""))
 pdf(filename,width=7, height=5,onefile=T)
 grid.table(out) #adding data table to plots
 for(i in c(8:25)){ #printing plots in pdf
   plot(hour_averaged_data[,i], xaxt="n", ylab=paste(colnames(hour_averaged_data[i])), xlab="", xlim=c(0,length(hour_averaged_data$Index)),type='l')
   axis(1,at=seq(1,length(hour_averaged_data$Index),by=(length(hour_averaged_data$Index)/10)),labels=hour_averaged_data[seq(1,length(hour_averaged_data$Index),by=(length(hour_averaged_data$Index)/10)),"Date_only_local"], las=2, cex.axis=0.8)
 }
-dev.off()
+graphics.off()

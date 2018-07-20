@@ -3,3 +3,4 @@ Temporary_directory/
 __pycache__
 *.pdf
 *.csv
+.Rhistory

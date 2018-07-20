@@ -13,6 +13,7 @@ import sys
 import glob
 import csv
 import subprocess
+import datetime
 from textui import uielements
 
 import min_avg_m_sumac
@@ -36,7 +37,8 @@ def end_date(dates):
     return uielements.user_input_list('What is your end date?',dates,emptycancel=False, returntype='index')
 
 #Asking for user input: which site should we process?
-sitesdir = os.path.join('/home','beacon','NODEFILES')
+#sitesdir = os.path.join('/home','beacon','NODEFILES')
+sitesdir = os.path.join(_my_dir, 'Test')
 def select_site():
     files = sorted(glob.glob(os.path.join(sitesdir,'*')))
     directories = [os.path.basename(f) for f in files if os.path.isdir(f)]
@@ -88,9 +90,13 @@ try:
     #R processing
     subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Beacon_minute_and_hour_average_processing.R'),time_zone, _my_dir, site, list_of_year_month_folders[start_idx], list_of_year_month_folders[end_idx]])
 
+    #Rename folder
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    os.rename((os.path.join(_my_dir,(site + list_of_year_month_folders[start_idx] + '_to_' + list_of_year_month_folders[end_idx] + '_temporary_processing'))),os.path.join(_my_dir, (site + timestamp)))
+
     #Message to copy file to local directory
     sumac_username = os.getenv('USER')
-    user_path = os.path.join((sumac_username + '@128.32.208.6:'),_my_dir,(site + '*'))
+    user_path = os.path.join((sumac_username + '@128.32.208.6:'),_my_dir,(site + '_'+timestamp))
     print('Process complete')
     print('To copy the directory you just created to your local directory, run the following command:')
     print('scp -r',user_path,'.')
