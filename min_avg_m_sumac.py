@@ -108,11 +108,12 @@ def main(lastdayofmonth,temporary_directory):
     # Specifies when we expect the data to start and end. The script
     # will ensure that there are exactly as many lines in the resulting
     # output as there are minutes between the start and end date. 
-    curr_date = datetime(year=int(os.listdir(temporary_directory)[0][0:4]), month=int(os.listdir(temporary_directory)[0][5:7]), day=1, hour=0, minute=0, second=0)  # Inclusive
-    end_date = datetime(year=int(os.listdir(temporary_directory)[-1][0:4]), month=int(os.listdir(temporary_directory)[-1][5:7]), day=int(lastdayofmonth), hour=23, minute=59, second=59)  # Non-inclusive
+    list_of_temporary_folders = sorted(os.listdir(temporary_directory))
+    curr_date = datetime(year=int(list_of_temporary_folders[0][0:4]), month=int(list_of_temporary_folders[0][5:7]), day=1, hour=0, minute=0, second=0)  # Inclusive
+    end_date = datetime(year=int(list_of_temporary_folders[-1][0:4]), month=int(list_of_temporary_folders[-1][5:7]), day=int(lastdayofmonth), hour=23, minute=59, second=59)  # Non-inclusive
 
     master_list = []
-    for year_month in sorted(os.listdir(temporary_directory)):
+    for year_month in sorted(list_of_temporary_folders):
         year_month_path = os.path.join(temporary_directory, year_month)
         sys.stderr.write("Processing folder: %s\n" % year_month_path)
 

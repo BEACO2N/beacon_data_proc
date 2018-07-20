@@ -36,10 +36,9 @@ def end_date(dates):
     return uielements.user_input_list('What is your end date?',dates,emptycancel=False, returntype='index')
 
 #Asking for user input: which site should we process?
-sitesdir = os.path.join(_my_dir, 'Test')
-#sitesdir = os.path.join(_my_dir, 'NODEFILES')
+sitesdir = os.path.join('/home','beacon','NODEFILES')
 def select_site():
-    files = glob.glob(os.path.join(sitesdir,'*'))
+    files = sorted(glob.glob(os.path.join(sitesdir,'*')))
     directories = [os.path.basename(f) for f in files if os.path.isdir(f)]
     return uielements.user_input_list('What is your site/SD card name?',directories,emptycancel=False)
 site = select_site() #Choosing site using function above
@@ -52,48 +51,51 @@ time_zone = time_zone_finder(tzone)
 
 #Copy only files from selected date range into temporary folder
 parent = os.path.join(sitesdir, site, 'data') #Folder in parent directory with months
-start_idx = start_date(os.listdir(parent)) #Choosing the first month in the range for which to grab data
-end_idx = end_date(os.listdir(parent)) #Choosing the last month in the range for which to grab data
+list_of_year_month_folders = sorted(os.listdir(parent))
+start_idx = start_date(list_of_year_month_folders) #Choosing the first month in the range for which to grab data
+end_idx = end_date(list_of_year_month_folders) #Choosing the last month in the range for which to grab data
 temporary_directory = os.path.join(_my_dir, 'Temporary_directory', site, 'data') #Path to temporary data directory
 
-for i in range(start_idx,end_idx+1): #Copy files
-    shutil.copytree(os.path.join(parent,os.listdir(parent)[i]), os.path.join(temporary_directory,os.listdir(parent)[i]))
+try:
+    for i in range(start_idx,end_idx+1): #Copy files
+        shutil.copytree(os.path.join(parent,list_of_year_month_folders[i]), os.path.join(temporary_directory,list_of_year_month_folders[i]),ignore=shutil.ignore_patterns('*.csv.*')) #in some data folders, there are hidden .csv files with random alphanumeric extensions that must be ignored, only keeping regular .csv files
 
-#Define last day of the month for min_avg_m_sumac.py script
-if os.listdir(parent)[end_idx][5:7] in ("01","03","05","07","08","11","12"):
-    lastdayofmonth = 31
-elif os.listdir(parent)[end_idx][5:7] in ("04","06","09","10"):
-    lastdayofmonth = 30
-elif os.listdir(parent)[end_idx][5:7] in ("02") and os.listdir(parent)[end_idx][0:4] in ("2012","2016","2020","2024","2028","2032"):
-    lastdayofmonth = 29
-else:
-    lastdayofmonth = 28
+    #Define last day of the month for min_avg_m_sumac.py script
+    if list_of_year_month_folders[end_idx][5:7] in ("01","03","05","07","08","11","12"):
+        lastdayofmonth = 31
+    elif list_of_year_month_folders[end_idx][5:7] in ("04","06","09","10"):
+        lastdayofmonth = 30
+    elif list_of_year_month_folders[end_idx][5:7] in ("02") and list_of_year_month_folders[end_idx][0:4] in ("2012","2016","2020","2024","2028","2032"):
+        lastdayofmonth = 29
+    else:
+        lastdayofmonth = 28
 
-#Run minute-averaging script and STPP correct script
-list_of_min_averages = min_avg_m_sumac.main(lastdayofmonth,temporary_directory)
-list_of_min_averages_STPP_corrected = stpp_correct_sumac.main(list_of_min_averages)
+    #Run minute-averaging script and STPP correct script
+    list_of_min_averages = min_avg_m_sumac.main(lastdayofmonth,temporary_directory)
+    list_of_min_averages_STPP_corrected = stpp_correct_sumac.main(list_of_min_averages)
 
-#Change all None, nan, and Nan to "NA" because R doesn't understand Nan, nan, and None as NA
-for row in list_of_min_averages_STPP_corrected:
-    for (i, item) in enumerate(row):
-        if item == 'None' or item == 'nan' or item == 'Nan':
-            row[i]='NA'
+    #Change all None, nan, and Nan to "NA" because R doesn't understand Nan, nan, and None as NA
+    for row in list_of_min_averages_STPP_corrected:
+        for (i, item) in enumerate(row):
+            if item == 'None' or item == 'nan' or item == 'Nan':
+                row[i]='NA'
 
-#Write to csv for processing in R
-with open("initial_output.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerows(list_of_min_averages_STPP_corrected)
+    #Write to csv for processing in R
+    with open("initial_output.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(list_of_min_averages_STPP_corrected)
 
-#R processing
-subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Beacon_minute_and_hour_average_processing.r'),time_zone, _my_dir, site, os.listdir(parent)[start_idx], os.listdir(parent)[end_idx]])
+    #R processing
+    subprocess.check_call(['Rscript', '--vanilla', os.path.join(_my_dir, 'Beacon_minute_and_hour_average_processing.R'),time_zone, _my_dir, site, list_of_year_month_folders[start_idx], list_of_year_month_folders[end_idx]])
 
-#Message to copy file to local directory
-sumac_username = os.getenv('USER')
-user_path = os.path.join((sumac_username + '@128.32.208.6:'),'home',sumac_username,'Temporary_directory',(site + '*'))
-print('Process complete')
-print('To copy the directory you just created to your local directory, run the following command:')
-print('scp -r',user_path,'.')
+    #Message to copy file to local directory
+    sumac_username = os.getenv('USER')
+    user_path = os.path.join((sumac_username + '@128.32.208.6:'),_my_dir,(site + '*'))
+    print('Process complete')
+    print('To copy the directory you just created to your local directory, run the following command:')
+    print('scp -r',user_path,'.')
 
-#Remove temporary directory and its contents
-shutil.rmtree('./Temporary_directory/')
-os.remove('./initial_output.csv')
+finally:
+    #Remove temporary directory and its contents
+    shutil.rmtree('./Temporary_directory/')
+    os.remove('./initial_output.csv')
