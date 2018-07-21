@@ -8,9 +8,10 @@
 #************************ NEEDED FUNCTIONS & PACKAGES ***************************#
 ##################################################################################
 
-library(lubridate) #package to process date data
-library(chron) #package to process date data
-library(gridExtra) #package to print data table
+print("Starting R processing")
+suppressMessages(library(lubridate)) #package to process date data
+suppressMessages(library(chron)) #package to process date data
+suppressMessages(library(gridExtra)) #package to print data table
 options(scipen=999) #avoiding scientific notation
 std.err <- function(x) sd(x, na.rm=T)/(sqrt(length(x[is.finite(x)]))) #standard error function
 

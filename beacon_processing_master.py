@@ -92,12 +92,12 @@ try:
 
     #Rename folder
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    os.rename((os.path.join(_my_dir,(site + list_of_year_month_folders[start_idx] + '_to_' + list_of_year_month_folders[end_idx] + '_temporary_processing'))),os.path.join(_my_dir, (site + timestamp)))
+    os.rename((os.path.join(_my_dir,(site + list_of_year_month_folders[start_idx] + '_to_' + list_of_year_month_folders[end_idx] + '_temporary_processing'))),os.path.join(_my_dir, (site + "_" + timestamp)))
 
     #Message to copy file to local directory
     sumac_username = os.getenv('USER')
-    user_path = os.path.join((sumac_username + '@128.32.208.6:'),_my_dir,(site + '_'+timestamp))
-    print('Process complete')
+    user_path = sumac_username + '@128.32.208.6:'+os.path.join(_my_dir,(site + '_'+timestamp))
+    print('Processing complete')
     print('To copy the directory you just created to your local directory, run the following command:')
     print('scp -r',user_path,'.')
 
