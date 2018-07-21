@@ -37,8 +37,8 @@ def end_date(dates):
     return uielements.user_input_list('What is your end date?',dates,emptycancel=False, returntype='index')
 
 #Asking for user input: which site should we process?
-#sitesdir = os.path.join('/home','beacon','NODEFILES')
-sitesdir = os.path.join(_my_dir, 'Test')
+sitesdir = os.path.join('/home','beacon','NODEFILES')
+#sitesdir = os.path.join(_my_dir, 'Test')
 def select_site():
     files = sorted(glob.glob(os.path.join(sitesdir,'*')))
     directories = [os.path.basename(f) for f in files if os.path.isdir(f)]
